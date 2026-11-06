@@ -1,5 +1,5 @@
 import {createSlideTransition,bindScrollMotion} from '@tobiasoberpaul/mdk';
-import {Moon,Sun} from 'lucide-react';
+import {ExternalLink,Moon,Sun} from 'lucide-react';
 import {Documentation} from './documentation.jsx';
 import {Button,buttonVariants} from './ui/button';
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
@@ -21,7 +21,7 @@ const sections = [...fallback.querySelectorAll('section[id]')].map(section => ({
 const view = sections.length ? 'docs' : 'home';
 const base = new URL(view === 'docs' ? '../' : './', location.href);
 const urls = { home: base.href, docs: new URL('docs/',base).href,
-  setup: new URL('docs/#get-started',base).href, source: sourceUrl };
+  source: sourceUrl };
 const linkTo = key => ({href:urls[key]});
 
 function HeaderHint({text,children}){return <TooltipProvider delayDuration={350}><Tooltip><TooltipTrigger asChild>{children}</TooltipTrigger><TooltipContent>{text}</TooltipContent></Tooltip></TooltipProvider>;}
@@ -98,11 +98,12 @@ function Site(){
         {productName}
       </a>
       <nav aria-label="AI Performance pages" className="shell-view-group">
-        {[['docs','Documentation'],['setup','Setup'],['source','GitHub']].map(([key,label])=>
-          <Button key={key} asChild variant={view===key?'secondary':'ghost'}>
-            <a aria-current={view===key?'page':undefined} {...linkTo(key)}>{label}</a>
-          </Button>
-        )}
+        <Button asChild variant={view==='docs'?'secondary':'ghost'}>
+          <a aria-current={view==='docs'?'page':undefined} {...linkTo('docs')}>Documentation</a>
+        </Button>
+        <Button asChild variant="ghost">
+          <a {...linkTo('source')}>GitHub <ExternalLink aria-hidden="true"/></a>
+        </Button>
       </nav>
     </div>
     <div className="shell-switches">
