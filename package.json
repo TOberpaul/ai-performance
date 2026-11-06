@@ -1,12 +1,52 @@
 {
-  "name": "ai-performance-tool",
-  "private": true,
+  "name": "@tobiasoberpaul/ai-performance",
+  "version": "0.1.0",
+  "description": "Local project telemetry for AI-assisted work across Codex and Kiro",
   "type": "module",
+  "bin": {
+    "ai-performance": "./cli.mjs"
+  },
+  "exports": {
+    "./hook": "./hook.cjs"
+  },
+  "files": [
+    "cli.mjs",
+    "init.mjs",
+    "hook.cjs",
+    "serve.mjs",
+    "record.mjs",
+    "import-history.mjs",
+    "data.mjs",
+    "rollout.mjs",
+    "app.jsx",
+    "styles.css",
+    "tailwind.config.cjs",
+    "components/",
+    "lib/",
+    "SHADCN-LICENSE",
+    "telemetry/.codex/hooks.json",
+    "telemetry/.codex/hooks/context-history.cjs",
+    "telemetry/.codex/hooks/context-package-check.cjs",
+    "telemetry/.codex/hooks/context-usage.cjs",
+    "telemetry/.codex/hooks/performance-store.cjs",
+    "telemetry/.kiro/hooks/performance.json",
+    "telemetry/.kiro/hooks/performance-run.cjs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TOberpaul/ai-performance.git"
+  },
+  "homepage": "https://toberpaul.github.io/ai-performance/",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "node serve.mjs",
     "import-history": "node import-history.mjs",
     "record": "node record.mjs",
-    "test": "node --test history.test.mjs"
+    "test": "node --test history.test.mjs",
+    "test:package": "node scripts/test-package.mjs",
+    "build:site": "node scripts/build-site.mjs"
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "1.2.1",
@@ -25,5 +65,12 @@
   "engines": {
     "node": ">=22.13.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@radix-ui/react-label": "2.1.17",
+    "@radix-ui/react-slider": "1.6.1",
+    "@radix-ui/react-switch": "1.3.2",
+    "@radix-ui/react-tooltip": "1.4.1",
+    "@tobiasoberpaul/mdk": "0.5.0"
+  }
 }

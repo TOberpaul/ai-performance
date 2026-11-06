@@ -5,7 +5,7 @@ const { withStore, put } = require('../../.codex/hooks/performance-store.cjs');
 
 const input = readFileSync(0, 'utf8').trim();
 const event = input ? JSON.parse(input) : {};
-const project = join(__dirname, '..', '..');
+const project = process.env.AI_PERFORMANCE_PROJECT || join(__dirname, '..', '..');
 const sessionId = typeof event.session_id === 'string' ? event.session_id : null;
 const turnId = typeof event.turn_id === 'string' ? event.turn_id : null;
 const id = sessionId && turnId ? `${sessionId}:${turnId}` : randomUUID();

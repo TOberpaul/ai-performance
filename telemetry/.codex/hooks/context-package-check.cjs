@@ -6,7 +6,7 @@ const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 
 const points = new Set([1, 2, 3, 5, 8, 13, 20]);
-const root = join(__dirname, '..', '..');
+const root = process.env.AI_PERFORMANCE_PROJECT || join(__dirname, '..', '..');
 
 function fingerprint() {
   const status = execFileSync('git', ['status', '--porcelain=v2', '--branch', '-z', '--no-renames', '--untracked-files=all', '--', '.', ':(exclude).codex/context-packages.json', ':(exclude).codex/context-usage.jsonl', ':(exclude).codex/performance.sqlite*'], {
@@ -48,7 +48,7 @@ function check(event) {
     Number.isSafeInteger(step.workSeconds) && step.workSeconds >= 0);
   if (!valid) console.log(JSON.stringify({
     decision: 'block',
-    reason: `Project change without a valid ticket record. Record this run exactly once in the local performance database using npm run record (sessionId: ${event.session_id}, turnId: ${event.turn_id}). Attach feedback to the existing ticket. Every ticket needs an epic. For new work, record the title, estimate and start time. If the file is locked, report the blocker.`,
+    reason: `Project change without a valid ticket record. Use the AI Performance record command to record this run exactly once (sessionId: ${event.session_id}, turnId: ${event.turn_id}). Attach feedback to the existing ticket. Every ticket needs an epic. For new work, record the title, estimate and start time. If the database is locked, report the blocker.`,
   }));
 }
 

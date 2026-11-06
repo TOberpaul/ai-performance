@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="../assets/motion.css">
   <link rel="stylesheet" href="../assets/playground.css">
   <link rel="stylesheet" href="../assets/page-spacing.css">
+  <script type="module" src="../assets/site.js"></script>
 </head>
 <body>
   <div id="root">
@@ -27,22 +28,28 @@
           <h1>Documentation</h1>
           <p class="page-header-description">Set up data collection in your local clone and see what each integration records.</p>
         </header>
-        <nav aria-label="On this page" class="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        <nav data-static-toc aria-label="On this page" class="flex flex-wrap gap-x-4 gap-y-2 text-sm">
           <a href="#get-started">Get started</a><a href="#collection">Collection</a><a href="#tickets">Tickets</a>
           <a href="#privacy">Privacy</a><a href="#history">Migration and backup</a>
         </nav>
         <section id="get-started">
           <h2>Get started</h2>
-          <p>Install Git and Node.js 22.13 or newer. Clone the tool and install its dependencies. Use the path to your own project clone when starting the dashboard.</p>
+          <p>Install Git and Node.js 22.13 or newer. From your own Git clone, install the release package or replace its name with the path to a pre-release archive.</p>
+          <pre><code>npm install -D @tobiasoberpaul/ai-performance
+npm exec -- ai-performance serve</code></pre>
+          <p>Open the printed loopback URL. For regular package updates, run <code>npm update @tobiasoberpaul/ai-performance</code>. To run directly from source instead, use the tool repository:</p>
           <pre><code>git clone https://github.com/TOberpaul/ai-performance.git
 cd ai-performance
 npm ci
 npm start -- "&lt;path-to-your-project-clone&gt;"</code></pre>
-          <p>Open the printed loopback URL. The current setup uses the tool's Git repository. To update it, pull the latest changes, run <code>npm ci</code> again, and update the installed hook scripts when their templates change.</p>
         </section>
         <section id="collection">
           <h2>How collection starts</h2>
-          <p>Enable the hooks you want in your own clone. Keep collection hook configuration local if each contributor should opt in independently. Starting the dashboard opens the project database. The hooks record new activity while you work in the corresponding tool.</p>
+          <p>Installing the package leaves collection off. Enable the hooks you want in your own clone:</p>
+          <pre><code>npm exec -- ai-performance init --codex
+npm exec -- ai-performance init --kiro
+# Or enable both with init --codex --kiro</code></pre>
+          <p>Codex users also review the new hooks in <strong>Settings → Hooks</strong>. Each clone opts in separately, even when the team shares hook configuration. Run <code>npm exec -- ai-performance disable</code> to pause collection by the npm hooks. The steps below also describe manual setup when running from source.</p>
           <h3 class="docs-subheading">Codex</h3>
           <ol>
             <li>Copy <code>telemetry/.codex/hooks/</code> from the tool into <code>.codex/hooks/</code> in your project. Merge the entries from <code>telemetry/.codex/hooks.json</code> into your project's <code>.codex/hooks.json</code>.</li>
@@ -65,11 +72,12 @@ npm start -- "&lt;path-to-your-project-clone&gt;"</code></pre>
         </section>
         <section id="privacy">
           <h2>What stays in your clone</h2>
-          <p>Each local clone has its own <code>.codex/performance.sqlite</code>. Add the following rule to the target repository's <code>.gitignore</code> or your clone's <code>.git/info/exclude</code> before collection begins.</p>
+          <p>Each local clone has its own <code>.codex/performance.sqlite</code>. The npm initializer adds the following rules. For manual setup, add them to <code>.gitignore</code> or <code>.git/info/exclude</code> before enabling collection.</p>
           <pre><code>/.codex/performance.sqlite*
 /.codex/context-packages.json
 /.codex/context-usage.jsonl
-/.codex/context-history/</code></pre>
+/.codex/context-history/
+/.codex/ai-performance-enabled.json</code></pre>
           <p>The database contains ticket metadata, tool and model names where available, run references, timings, and usage and quota measurements. The supplied hooks omit prompt text, replies and tool output. GitHub Pages publishes this guide. Your dashboard is served on your computer.</p>
           <p>Everyone using a separate clone gets a separate database. People with access to the same checkout can access its database.</p>
         </section>

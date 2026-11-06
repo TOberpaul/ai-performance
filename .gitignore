@@ -3,3 +3,6 @@
 /.codex/context-packages.json
 /.codex/context-history/
 /.codex/performance.sqlite*
+/.codex/ai-performance-enabled.json
+/*.tgz
+/site/assets/site.js

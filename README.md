@@ -4,7 +4,31 @@
 
 Lokales Dashboard für KI-gestützte Arbeit. Tickets können Durchläufe mehrerer Tools enthalten. Arbeitszeit und Nacharbeit werden pro Ticket zusammengefasst. Verbrauch bleibt in der jeweiligen Einheit sichtbar.
 
-## Start
+## Installation im Projekt
+
+Führe die Befehle mit Node.js 22.13 oder neuer im Stammverzeichnis des Ziel-Clones aus.
+
+```powershell
+npm install -D @tobiasoberpaul/ai-performance
+npm exec -- ai-performance serve
+```
+
+Für einen Vorabtest kannst du bei der Installation statt des Paketnamens den Pfad zur lokalen `.tgz`-Datei angeben. Die Installation allein erfasst keine Daten. Aktiviere die gewünschten Hooks explizit im eigenen Clone:
+
+```powershell
+npm exec -- ai-performance init --codex
+npm exec -- ai-performance init --kiro
+# Oder beide Integrationen zugleich
+npm exec -- ai-performance init --codex --kiro
+```
+
+Der Einrichtungsbefehl übernimmt bestehende, unabhängige Hook-Einträge und ergänzt die Git-Ignore-Regeln für Datenbank, Altdaten und lokale Aktivierung. In Codex musst du die neuen Hooks unter **Settings → Hooks** bestätigen. Jeder Clone aktiviert die Erfassung separat, auch wenn die Hook-Konfiguration eingecheckt ist. Mit `npm exec -- ai-performance disable` pausierst du die npm-Hooks in deinem Clone. Gespeicherte Daten bleiben verfügbar.
+
+Wenn das Projekt bereits die manuell kopierten Hooks verwendet, entferne deren Einträge vor dem Wechsel zu den npm-Hooks. Die Datenbank bleibt am selben Ort. Die npm-Hooks verwenden jeweils die im Projekt installierte Paketversion. Ein Update aktualisiert damit UI und Hook-Code gemeinsam.
+
+Das Paket stellt außerdem `ai-performance record` und `ai-performance import-history` bereit. Ersetze bei npm-Installation die unten gezeigten Aufrufe von `npm run record -- …` und `npm run import-history -- …` durch `npm exec -- ai-performance record …` beziehungsweise `npm exec -- ai-performance import-history …`.
+
+## Start aus dem Tool-Clone
 
 Benötigt Node.js ab Version 22.13 und npm. Führe die Befehle in diesem Repository aus.
 

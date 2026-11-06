@@ -104,7 +104,7 @@ async function saveTranscript(project, source, id) {
     WHERE excluded.source_size > transcripts.source_size`).run(id, size, output.join('\n') + '\n').changes > 0);
 }
 
-async function runHook(project = join(__dirname, '..', '..')) {
+async function runHook(project = process.env.AI_PERFORMANCE_PROJECT || join(__dirname, '..', '..')) {
   const event = JSON.parse(require('node:fs').readFileSync(0, 'utf8'));
   if (!event.session_id) return;
   if (event.transcript_path) {

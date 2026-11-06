@@ -46,7 +46,7 @@ const build = await context({
     setup(builder) {
       builder.onLoad({ filter: /styles\.css$/ }, async ({ path }) => {
         const source = await readFile(path, 'utf8');
-        const { css } = await postcss([tailwind()]).process(source, { from: path });
+        const { css } = await postcss([tailwind(join(app, 'tailwind.config.cjs'))]).process(source, { from: path });
         return { contents: css, loader: 'css', watchFiles: [path, join(app, 'tailwind.config.cjs')] };
       });
       builder.onEnd(({ errors, outputFiles }) => {

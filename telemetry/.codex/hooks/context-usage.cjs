@@ -20,5 +20,5 @@ process.stdin.on('end', () => {
     tokenUsage: event.token_usage ?? null,
   };
 
-  withStore(join(__dirname, '..', '..'), db => put(db, 'attempt', randomUUID(), record));
+  withStore(process.env.AI_PERFORMANCE_PROJECT || join(__dirname, '..', '..'), db => put(db, 'attempt', randomUUID(), record));
 });
