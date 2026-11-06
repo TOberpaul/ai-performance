@@ -6,13 +6,13 @@ const [command, ...args] = process.argv.slice(2);
 const help = `AI Performance Tool
 
 Usage:
-  ai-performance serve [project] [--codex-history]
-  ai-performance init --codex [--kiro]
-  ai-performance init --kiro
-  ai-performance disable
-  ai-performance record <arguments>
-  ai-performance import-history [project]
-  ai-performance --version
+  aip serve [project] [--codex-history]
+  aip init --codex [--kiro]
+  aip init --kiro
+  aip disable
+  aip record <arguments>
+  aip import-history [project]
+  aip --version
 
 Run init and disable from the target Git repository root.`;
 
@@ -40,7 +40,7 @@ try {
   } else if (!command || command === '--help' || command === '-h') {
     console.log(help);
   } else {
-    throw new Error(`Unknown command: ${command}. Run ai-performance --help.`);
+    throw new Error(`Unknown command: ${command}. Run aip --help.`);
   }
 } catch (error) {
   console.error(error.message);

@@ -18,7 +18,7 @@ assert.ok(pack.files.every(({ path }) =>
 
 const project = mkdtempSync(join(tmpdir(), 'ai-performance-package-'));
 const file = (...parts) => join(project, ...parts);
-const cli = (args, input) => npm(['exec', '--', 'ai-performance', ...args], project, input);
+const cli = (args, input) => npm(['exec', '--', 'aip', ...args], project, input);
 const callHook = (dir, role, payload) => execFileSync(process.execPath, [file(dir, 'hooks', 'ai-performance.cjs'), role], {
   cwd: project, encoding: 'utf8', input: JSON.stringify(payload),
 });
@@ -46,6 +46,18 @@ try {
   callHook('.codex', 'codex-usage', codex);
   callHook('.kiro', 'kiro-run', kiro);
   assert.ok(existsSync(db));
+  const originalDatabase = readFileSync(db);
+  for (const provider of ['.codex', '.kiro']) {
+    const launcher = file(provider, 'hooks', 'ai-performance.cjs');
+    writeFileSync(launcher, readFileSync(launcher, 'utf8').replace(
+      '@tobiasoberpaul/aip/hook', '@tobiasoberpaul/ai-performance/hook',
+    ));
+  }
+  cli(['init', '--codex', '--kiro']);
+  assert.deepEqual(readFileSync(db), originalDatabase);
+  for (const provider of ['.codex', '.kiro']) {
+    assert.match(readFileSync(file(provider, 'hooks', 'ai-performance.cjs'), 'utf8'), /@tobiasoberpaul\/aip\/hook/);
+  }
   execFileSync('git', ['check-ignore', '.codex/performance.sqlite', '.codex/ai-performance-enabled.json'], { cwd: project });
   cli(['record', 'ticket', '-'], JSON.stringify({
     id: 'SMOKE-1', name: 'Installed package test', epic: 'Release',
@@ -57,7 +69,7 @@ try {
   callHook('.codex', 'codex-usage', { ...codex, token_usage: { total_tokens: 500 } });
   callHook('.kiro', 'kiro-run', { ...kiro, turn_id: 'disabled-turn' });
 
-  const installedCli = file('node_modules', '@tobiasoberpaul', 'ai-performance', 'cli.mjs');
+  const installedCli = file('node_modules', '@tobiasoberpaul', 'aip', 'cli.mjs');
   const server = spawn(process.execPath, [installedCli, 'serve'], { cwd: project, stdio: ['ignore', 'pipe', 'inherit'] });
   const ended = new Promise(resolve => server.once('exit', resolve));
   try {

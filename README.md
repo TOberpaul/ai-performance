@@ -9,24 +9,28 @@ Lokales Dashboard für KI-gestützte Arbeit. Tickets können Durchläufe mehrere
 Führe die Befehle mit Node.js 22.13 oder neuer im Stammverzeichnis des Ziel-Clones aus.
 
 ```powershell
-npm install -D @tobiasoberpaul/ai-performance
-npm exec -- ai-performance serve
+npm install -D @tobiasoberpaul/aip
+npm exec -- aip serve
 ```
 
 Für einen Vorabtest kannst du bei der Installation statt des Paketnamens den Pfad zur lokalen `.tgz`-Datei angeben. Die Installation allein erfasst keine Daten. Aktiviere die gewünschten Hooks explizit im eigenen Clone:
 
 ```powershell
-npm exec -- ai-performance init --codex
-npm exec -- ai-performance init --kiro
+npm exec -- aip init --codex
+npm exec -- aip init --kiro
 # Oder beide Integrationen zugleich
-npm exec -- ai-performance init --codex --kiro
+npm exec -- aip init --codex --kiro
 ```
 
-Der Einrichtungsbefehl übernimmt bestehende, unabhängige Hook-Einträge und ergänzt die Git-Ignore-Regeln für Datenbank, Altdaten und lokale Aktivierung. In Codex musst du die neuen Hooks unter **Settings → Hooks** bestätigen. Jeder Clone aktiviert die Erfassung separat, auch wenn die Hook-Konfiguration eingecheckt ist. Mit `npm exec -- ai-performance disable` pausierst du die npm-Hooks in deinem Clone. Gespeicherte Daten bleiben verfügbar.
+Der Einrichtungsbefehl übernimmt bestehende, unabhängige Hook-Einträge und ergänzt die Git-Ignore-Regeln für Datenbank, Altdaten und lokale Aktivierung. In Codex musst du die neuen Hooks unter **Settings → Hooks** bestätigen. Jeder Clone aktiviert die Erfassung separat, auch wenn die Hook-Konfiguration eingecheckt ist. Mit `npm exec -- aip disable` pausierst du die npm-Hooks in deinem Clone. Gespeicherte Daten bleiben verfügbar.
 
 Wenn das Projekt bereits die manuell kopierten Hooks verwendet, entferne deren Einträge vor dem Wechsel zu den npm-Hooks. Die Datenbank bleibt am selben Ort. Die npm-Hooks verwenden jeweils die im Projekt installierte Paketversion. Ein Update aktualisiert damit UI und Hook-Code gemeinsam.
 
-Das Paket stellt außerdem `ai-performance record` und `ai-performance import-history` bereit. Ersetze bei npm-Installation die unten gezeigten Aufrufe von `npm run record -- …` und `npm run import-history -- …` durch `npm exec -- ai-performance record …` beziehungsweise `npm exec -- ai-performance import-history …`.
+Das Paket stellt außerdem `aip record` und `aip import-history` bereit. Ersetze bei npm-Installation die unten gezeigten Aufrufe von `npm run record -- …` und `npm run import-history -- …` durch `npm exec -- aip record …` beziehungsweise `npm exec -- aip import-history …`.
+
+### Wechsel vom bisherigen Paketnamen
+
+Installiere zuerst `@tobiasoberpaul/aip` und führe `npm exec -- aip init` mit denselben Provider-Optionen wie bisher aus. Das aktualisiert die vorhandenen npm-Hook-Launcher. Danach kannst du `npm uninstall @tobiasoberpaul/ai-performance` ausführen. Die Datenbank bleibt in deinem Clone.
 
 ## Start aus dem Tool-Clone
 

@@ -4,10 +4,11 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import hook from './hook.cjs';
 
-const packageName = '@tobiasoberpaul/ai-performance';
+const packageName = '@tobiasoberpaul/aip';
 const launcher = `const { join } = require('node:path');
 require('${packageName}/hook').run(join(__dirname, '..', '..'), process.argv[2]);
 `;
+const previousLauncher = launcher.replace(packageName, '@tobiasoberpaul/ai-performance');
 const ignoreRules = [
   '/.codex/performance.sqlite*', '/.codex/ai-performance-enabled.json',
   '/.codex/context-packages.json', '/.codex/context-usage.jsonl', '/.codex/context-history/',
@@ -81,7 +82,10 @@ export async function init(project, args) {
   const queueJson = (path, value) => files.set(path, JSON.stringify(value, null, 2) + '\n');
   const queueLauncher = async (path) => {
     const existing = await read(path);
-    if (existing !== null && existing !== launcher) throw new Error(`Refusing to overwrite ${path}.`);
+    const normalized = existing?.replace(/\r\n/g, '\n');
+    if (existing !== null && normalized !== launcher && normalized !== previousLauncher) {
+      throw new Error(`Refusing to overwrite ${path}.`);
+    }
     files.set(path, launcher);
   };
   if (args.includes('--codex')) {
