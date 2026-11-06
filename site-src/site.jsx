@@ -6,8 +6,7 @@ import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Tooltip,TooltipTrigger,TooltipContent,TooltipProvider} from './ui/tooltip';
 
-const productName = 'AI Performance Tool';
-const productShortName = 'AI Performance';
+const productName = 'AI Performance';
 const sourceUrl = 'https://github.com/Tobias-Oberpaul/aip';
 const container = document.getElementById('root');
 const fallback = container.querySelector('article').cloneNode(true);
@@ -93,10 +92,9 @@ function Site(){
   <header ref={headerRef} data-floating={headerFloating} className="shell-header border-b bg-background">
     <div className="shell-title">
       <a className="shell-home text-base font-semibold tracking-tight" aria-label={productName} {...linkTo('home')}>
-        <span className="shell-home-full">{productName}</span>
-        <span className="shell-home-short">{productShortName}</span>
+        {productName}
       </a>
-      <nav aria-label="AI Performance Tool pages" className="shell-view-group">
+      <nav aria-label="AI Performance pages" className="shell-view-group">
         {[['docs','Documentation'],['setup','Setup'],['source','GitHub']].map(([key,label])=>
           <Button key={key} asChild variant={view===key?'secondary':'ghost'}>
             <a aria-current={view===key?'page':undefined} {...linkTo(key)}>{label}</a>

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 
 const [command, ...args] = process.argv.slice(2);
-const help = `AI Performance Tool
+const help = `AI Performance
 
 Usage:
   aip serve [project] [--codex-history]

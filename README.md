@@ -1,4 +1,4 @@
-# AI Performance Tool
+# AI Performance
 
 [Documentation](https://tobias-oberpaul.github.io/aip/docs/)
 
