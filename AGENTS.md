@@ -1,7 +1,9 @@
 # Project telemetry
 
-For each implementation package, record one outcome under its epic in `.codex/context-packages.json`. Record the title, initial story-point estimate and start time before implementation, and keep them when following up. Use the existing ticket for rework on the same outcome.
+The local `.codex/performance.sqlite` database holds tickets, usage and measurements. Use `npm run record -- list ticket` to inspect tickets and `npm run record -- ticket -` with JSON on stdin to create or update a ticket. Keep the database and its journal out of Git.
 
-Add each implementation, feedback or handoff turn exactly once under `subtasks` with its real session ID, turn ID and measured work duration in seconds. Record completion in `completedAt` and explicit acceptance separately in `acceptedAt`.
+For each implementation package, record one outcome under its epic. Record the title, initial story-point estimate and start time before implementation and retain them during follow-up. Attach rework on the same outcome to the existing ticket.
 
-Use `npm start -- --codex-history` to inspect this project's data. The local token log is ignored by Git.
+Add each Codex implementation, feedback or handoff turn exactly once under the ticket's `subtasks` with its real session ID, turn ID and measured duration in seconds. Preserve existing subtasks when updating the array. Record completion in `completedAt` and explicit acceptance separately in `acceptedAt`.
+
+Use `npm start` to inspect local data. Run `npm run import-history` to preserve available measurements before removing old Codex sessions.

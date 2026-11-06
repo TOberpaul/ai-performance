@@ -1,6 +1,6 @@
-import { readFile } from 'node:fs/promises';
-import { basename, join } from 'node:path';
+import { basename } from 'node:path';
 import { readRolloutUsage } from './rollout.mjs';
+import store from './telemetry/.codex/hooks/performance-store.cjs';
 
 const count = (value) => Number.isSafeInteger(value) && value >= 0;
 const epicName = (item) => typeof item?.epic === 'string' ? item.epic.trim() : '';
@@ -81,39 +81,58 @@ function quotaCoverage(history) {
   return { summary, find, matchTime };
 }
 
-export async function readAnalytics(project, epic = null, historyDirectory) {
-  const read = (file) => readFile(join(project, '.codex', file), 'utf8').catch((error) => {
-    if (error.code === 'ENOENT') return null;
-    throw error;
-  });
-  const [usage, packagesFile] = await Promise.all([read('context-usage.jsonl'), read('context-packages.json')]);
-  const packages = packagesFile === null ? [] : JSON.parse(packagesFile.replace(/^\uFEFF/, ''));
-  if (!Array.isArray(packages)) throw new Error('context-packages.json must contain a JSON array.');
+export async function readAnalytics(project, epic = null) {
+  const { packages, usage, runs, quotaSnapshots, migration } = store.withStore(project, db => ({
+    packages: store.records(db, 'ticket'), usage: store.records(db, 'attempt'),
+    runs: store.records(db, 'run'), quotaSnapshots: store.records(db, 'quota'),
+    migration: store.records(db, 'meta')[0],
+  }));
   const epics = [...new Set(packages.map(epicName).filter(Boolean))].sort((a,b) => a.localeCompare(b, 'en-GB'));
   const scopedAttempts = new Set();
 
-  const history = historyDirectory ? await readRolloutUsage(historyDirectory, packages) : { rows: [], quotas: new Map() };
+  const history = await readRolloutUsage(project, packages);
   const coverage = quotaCoverage(history);
   const turnKey = (row) => JSON.stringify([row.sessionId, row.turnId]);
   const recovered = new Set(history.rows.map(turnKey));
   const attempts = [...history.rows];
   const bySession = new Map();
-  let skipped = 0;
-  for (const line of (usage ?? '').split(/\r?\n/)) {
-    if (!line.trim()) continue;
-    try {
-      const event = JSON.parse(line);
-      if (!event || typeof event !== 'object' || Array.isArray(event)) throw new Error();
-      const row = { ...event, tokens: totalTokens(event.tokenUsage) };
-      if (!recovered.has(turnKey(row))) attempts.push(row);
-    } catch {
-      skipped++;
-    }
+  const skipped = migration.skipped;
+  for (const event of usage) {
+    const row = { ...event, tokens: totalTokens(event.tokenUsage) };
+    if (!recovered.has(turnKey(row))) attempts.push(row);
   }
   for (const row of attempts) {
     if (!row.sessionId) continue;
     if (!bySession.has(row.sessionId)) bySession.set(row.sessionId, []);
     bySession.get(row.sessionId).push(row);
+  }
+  const runsByTicket = new Map();
+  const unassignedRuns = [];
+  const ticketIds = new Set(packages.map(ticket => ticket.id));
+  const codexLinks = new Set(packages.flatMap(ticket => (ticket.subtasks ?? []).map(turnKey)));
+  const legacyLinks = packages.filter(ticket => !ticket.subtasks && Array.isArray(ticket.sessionIds));
+  for (const [sessionId, rows] of bySession) {
+    const turns = new Map();
+    for (const row of rows) {
+      if (!row.turnId || codexLinks.has(turnKey(row)) || legacyLinks.some(ticket =>
+        ticket.sessionIds.includes(sessionId) && (!ticket.turnIds || ticket.turnIds.includes(row.turnId)))) continue;
+      if (!turns.has(row.turnId)) turns.set(row.turnId, []);
+      turns.get(row.turnId).push(row);
+    }
+    for (const [turnId, entries] of turns) {
+      const stats = totals(entries);
+      unassignedRuns.push({ id: `${sessionId}:${turnId}`, provider: 'codex', name: 'Codex run',
+        sessionId, turnId, model: entries.find(row => row.model)?.model ?? null, tokens: stats.tokens,
+        partialUsage: stats.tokens !== null && stats.measured < stats.attempts });
+    }
+  }
+  for (const run of runs) {
+    if (!ticketIds.has(run.ticketId)) {
+      unassignedRuns.push(run);
+      continue;
+    }
+    if (!runsByTicket.has(run.ticketId)) runsByTicket.set(run.ticketId, []);
+    runsByTicket.get(run.ticketId).push(run);
   }
 
   const peersByPoints = new Map();
@@ -145,6 +164,7 @@ export async function readAnalytics(project, epic = null, historyDirectory) {
       const quota = history.quotas.get(key);
       const timing = history.timings?.get(key) ?? (item.subtasks.length === 1 ? ticketTime : null);
       return { rows, resetsAt: quota?.resetsAt ?? coverage.matchTime(timing ?? {}), detail: { key, name: step.name, kind: step.kind,
+        provider: 'codex', model: rows.find(row => row.model)?.model ?? null,
         workSeconds: count(step.workSeconds) ? step.workSeconds : null,
         tokens: stats.tokens, partialUsage: stats.tokens !== null && stats.measured < stats.attempts,
         quotaUsed: quota?.used ?? null, ...timing } };
@@ -152,7 +172,12 @@ export async function readAnalytics(project, epic = null, historyDirectory) {
     const rows = steps ? steps.flatMap((step) => step.rows)
       : [...new Set(item.sessionIds)].flatMap((id) => bySession.get(id) ?? [])
         .filter((row) => item.turnIds === undefined || item.turnIds.includes(row.turnId));
-    const subtasks = steps?.map((step) => step.detail) ?? [];
+    const codexSteps = steps?.map((step) => step.detail) ?? [];
+    const additionalRuns = runsByTicket.get(item.id) ?? [];
+    const subtasks = [...codexSteps, ...additionalRuns.map(run => ({
+      ...run, key: JSON.stringify([run.provider, run.id]), tokens: null, quotaUsed: null,
+      startedAt: timestamp(Date.parse(run.startedAt)), endedAt: timestamp(Date.parse(run.endedAt)),
+    }))];
     const firstImplementation = subtasks.find(step => step.kind === 'implementation');
     const measuredQuotas = subtasks.map((step) => step.quotaUsed).filter((value) => value !== null);
     const stats = totals(rows);
@@ -168,7 +193,7 @@ export async function readAnalytics(project, epic = null, historyDirectory) {
       quotaUsed: measuredQuotas.length ? measuredQuotas.reduce((sum, value) => sum + value, 0) : null,
       partialQuota: measuredQuotas.length > 0 && measuredQuotas.length < subtasks.length,
       correctionRounds: steps ? subtasks.filter((step) => step.kind === 'feedback').length : item.correctionRounds,
-      workSeconds: steps
+      workSeconds: steps || additionalRuns.length
         ? subtasks.length && subtasks.every((step) => step.workSeconds !== null)
           ? subtasks.reduce((sum, step) => sum + step.workSeconds, 0) : null
         : count(item.workSeconds) ? item.workSeconds : null,
@@ -183,7 +208,9 @@ export async function readAnalytics(project, epic = null, historyDirectory) {
     }
     if (epic !== null && result.epic !== epic) return [];
     if (epic !== null) rows.forEach((row) => scopedAttempts.add(row));
-    if (!steps?.length) windowFor(coverage.matchTime(ticketTime)).items.push(result);
+    if (!steps?.length) {
+      if (!additionalRuns.length) windowFor(coverage.matchTime(ticketTime)).items.push(result);
+    }
     else {
       const byWindow = new Map();
       for (const step of steps) {
@@ -193,7 +220,7 @@ export async function readAnalytics(project, epic = null, historyDirectory) {
         window.quotas.set(step.detail.key, step.detail.quotaUsed);
       }
       for (const [window, selected] of byWindow) {
-        if (selected.length === steps.length) {
+        if (selected.length === steps.length && !additionalRuns.length) {
           window.items.push(result);
           continue;
         }
@@ -213,7 +240,8 @@ export async function readAnalytics(project, epic = null, historyDirectory) {
   });
   const scores = new Map();
   for (const group of peersByPoints.values()) {
-    const tokenGroup = skipped ? [] : group.filter(item => item.tokens > 0 && !item.partialUsage);
+    const tokenGroup = skipped ? [] : group.filter(item => item.tokens > 0 && !item.partialUsage &&
+      item.subtasks.every(step => step.provider === 'codex'));
     const timeGroup = group.filter(item => item.workSeconds > 0);
     for (const [metric, field, eligible] of [['tokenScore', 'tokens', tokenGroup], ['timeScore', 'workSeconds', timeGroup]]) {
       if (eligible.length < 3) continue;
@@ -235,6 +263,12 @@ export async function readAnalytics(project, epic = null, historyDirectory) {
       used: measured.length ? measured.reduce((sum, value) => sum + value, 0) : null,
       coverage: resetsAt === null ? null : coverage.find(resetsAt) ?? null };
   });
-  return { project: basename(project), hasLog: usage !== null || history.rows.length > 0, skipped, epics,
+  const latestQuota = new Map();
+  for (const quota of quotaSnapshots) {
+    const key = JSON.stringify([quota.provider, quota.account, quota.unit, quota.periodStart, quota.periodEnd]);
+    if (!latestQuota.has(key) || Date.parse(latestQuota.get(key).observedAt) < Date.parse(quota.observedAt)) latestQuota.set(key, quota);
+  }
+  return { project: basename(project), hasLog: migration.hadUsage || usage.length > 0 || history.rows.length > 0 || runs.length > 0,
+    skipped, epics, unassignedRuns, quotaSnapshots: [...latestQuota.values()],
     ...totals(epic === null ? attempts : [...scopedAttempts]), items: displayItems(items), quotaWindows, coverage: coverage.summary };
 }

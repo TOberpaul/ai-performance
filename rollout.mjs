@@ -1,7 +1,7 @@
-import { createReadStream } from 'node:fs';
-import { readdir } from 'node:fs/promises';
-import { join } from 'node:path';
 import { createInterface } from 'node:readline';
+import historyStore from './telemetry/.codex/hooks/context-history.cjs';
+
+const { savedTranscripts } = historyStore;
 
 function quota(payload) {
   const limits = payload.rate_limits;
@@ -11,24 +11,7 @@ function quota(payload) {
     ? { used: window.used_percent, resetsAt: window.resets_at } : null;
 }
 
-async function* files(directory, sessions, depth = 0) {
-  let entries;
-  try {
-    entries = await readdir(directory, { withFileTypes: true });
-  } catch (error) {
-    if (error.code === 'ENOENT' || error.code === 'EACCES' || error.code === 'EPERM') return;
-    throw error;
-  }
-  for (const entry of entries) {
-    const path = join(directory, entry.name);
-    if (depth < 3 && entry.isDirectory() && /^\d{2,4}$/.test(entry.name)) yield* files(path, sessions, depth + 1);
-    if (!entry.isFile() || !entry.name.startsWith('rollout-')) continue;
-    const id = entry.name.match(/([\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12})\.jsonl$/i)?.[1];
-    if (sessions.has(id)) yield { id, path };
-  }
-}
-
-export async function readRolloutUsage(directory, packages) {
+export async function readRolloutUsage(project, packages) {
   const sessions = new Map();
   for (const item of packages) {
     for (const step of Array.isArray(item?.subtasks) ? item.subtasks : []) {
@@ -44,11 +27,25 @@ export async function readRolloutUsage(directory, packages) {
   const accountUsage = new Map();
   const unassigned = new Map();
   if (!sessions.size) return { rows, quotas, accountUsage, unassigned, timings, startContexts };
-  for await (const { id, path } of files(directory, sessions)) {
+  for await (const { id, input } of savedTranscripts(project, sessions)) {
     const turns = sessions.get(id);
     sessions.delete(id);
     let current, started, model, before, latest, observed, previousTotal;
-    const lines = createInterface({ input: createReadStream(path), crlfDelay: Infinity });
+    function recordQuota() {
+      if (!current || !observed) return;
+      const sameWindow = before && Math.abs(before.resetsAt - observed.resetsAt) <= 2;
+      const withinWindow = started >= observed.resetsAt - 18000 && started < observed.resetsAt;
+      if (!sameWindow && !withinWindow) return;
+      const used = sameWindow && observed.used >= before.used ? observed.used - before.used : null;
+      if (turns.has(current)) quotas.set(JSON.stringify([id, current]), { resetsAt: observed.resetsAt, used });
+      else if (used > 0) {
+        const group = unassigned.get(observed.resetsAt) ?? { count: 0, used: 0 };
+        group.count++;
+        group.used += used;
+        unassigned.set(observed.resetsAt, group);
+      }
+    }
+    const lines = createInterface({ input, crlfDelay: Infinity });
     try {
       for await (const line of lines) {
         if (!line.includes('"token_count"') && !line.includes('"task_started"') &&
@@ -60,6 +57,7 @@ export async function readRolloutUsage(directory, packages) {
         if (event.type === 'turn_context' && payload.turn_id === current) model = payload.model;
         if (event.type !== 'event_msg') continue;
         if (payload.type === 'task_started') {
+          recordQuota();
           current = payload.turn_id;
           started = Date.parse(event.timestamp) / 1000;
           model = null;
@@ -70,23 +68,7 @@ export async function readRolloutUsage(directory, packages) {
           if (turns.has(current) && Number.isFinite(started) && endedAt >= started * 1000) {
             timings.set(JSON.stringify([id, current]), { startedAt: started * 1000, endedAt });
           }
-          if (observed) {
-            const sameWindow = before && Math.abs(before.resetsAt - observed.resetsAt) <= 2;
-            const withinWindow = started >= observed.resetsAt - 18000 && started < observed.resetsAt;
-            if (sameWindow || withinWindow) {
-              const measurement = {
-                resetsAt: observed.resetsAt,
-                used: sameWindow && observed.used >= before.used ? observed.used - before.used : null,
-              };
-              if (turns.has(current)) quotas.set(JSON.stringify([id, current]), measurement);
-              else if (measurement.used > 0) {
-                const group = unassigned.get(measurement.resetsAt) ?? { count: 0, used: 0 };
-                group.count++;
-                group.used += measurement.used;
-                unassigned.set(measurement.resetsAt, group);
-              }
-            }
-          }
+          recordQuota();
           current = null;
         } else if (payload.type === 'token_count') {
           const snapshot = quota(payload);
@@ -113,8 +95,10 @@ export async function readRolloutUsage(directory, packages) {
           previousTotal = cumulative;
         }
       }
+      recordQuota();
     } finally {
       lines.close();
+      input.destroy();
     }
     if (!sessions.size) break;
   }

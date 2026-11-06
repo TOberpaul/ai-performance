@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta name="description" content="Track AI-assisted work and usage locally in each project.">
+  <title>AI Performance Tool</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+  <link rel="stylesheet" href="./assets/motion.css">
+  <link rel="stylesheet" href="./assets/playground.css">
+  <link rel="stylesheet" href="./assets/page-spacing.css">
+</head>
+<body>
+  <div id="root">
+    <main class="documentation mx-auto !block w-full max-w-[var(--site-content-width)] !py-8 !scroll-pt-4">
+      <header class="mb-8">
+        <nav aria-label="AI Performance Tool pages" class="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          <a href="./" aria-label="AI Performance Tool" aria-current="page"><span class="shell-home-full">AI Performance Tool</span><span class="shell-home-short">AI Performance</span></a>
+          <a href="./docs/">Documentation</a>
+          <a href="https://github.com/TOberpaul/ai-performance">GitHub</a>
+        </nav>
+      </header>
+      <article class="space-y-4">
+        <header class="page-header">
+          <p class="page-header-eyebrow">AI PERFORMANCE TOOL</p>
+          <h1>Track AI-assisted work locally</h1>
+          <p class="page-header-description">See how much time and usage go into each ticket, even when you work across Codex and Kiro.</p>
+        </header>
+        <p><a href="./docs/#get-started">Get started</a> · <a href="./docs/#privacy">See what gets recorded</a></p>
+        <section class="home-principles" aria-label="How the tool works">
+          <div><h2>One view per ticket</h2><p>Group implementation, feedback and handoff runs under the same outcome.</p></div>
+          <div><h2>Usage by provider</h2><p>See tokens and credits in their own units, with account limits shown separately.</p></div>
+          <div><h2>Local to your clone</h2><p>Tickets and measurements live in a Git-ignored SQLite database in your checkout.</p></div>
+        </section>
+      </article>
+    </main>
+  </div>
+</body>
+</html>

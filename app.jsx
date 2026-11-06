@@ -73,6 +73,25 @@ function TokenCount({ item }) {
   </>;
 }
 
+const providerName = provider => ({ codex: 'Codex', kiro: 'Kiro' })[provider] ?? provider;
+
+function RunUsage({ item }) {
+  const metrics = new Map();
+  for (const run of item.subtasks ?? [item]) {
+    for (const { unit, value } of run.metrics ?? []) {
+      const key = JSON.stringify([run.provider, unit]);
+      metrics.set(key, (metrics.get(key) ?? 0) + value);
+    }
+  }
+  const showCodex = item.provider === 'codex' || Number.isFinite(item.tokens) || !metrics.size;
+  return <>{showCodex && <span className="block"><TokenCount item={item}/>{Number.isFinite(item.tokens) && ' tokens'}</span>}
+    {[...metrics].map(([key, value]) => {
+      const [provider, unit] = JSON.parse(key);
+      return <span key={key} className="block">{number(value)} {unit} · {providerName(provider)}</span>;
+    })}
+  </>;
+}
+
 function PackageField({ label, children, className = '' }) {
   return <span className={`grid min-w-0 content-start gap-1 ${className}`}><span className="text-xs text-muted-foreground">{label}</span><span>{children}</span></span>;
 }
@@ -82,7 +101,8 @@ const ticketRow = rowLayout + ' relative bg-muted/60';
 const fieldLayout = 'grid min-w-0 grid-cols-2 gap-x-3 gap-y-2 sm:grid-cols-4';
 
 function PackageItem({ item, windowItem }) {
-  const expandable = item.subtasks.length > 1;
+  const expandable = item.subtasks.length > 0;
+  const providers = [...new Set(item.subtasks.map(step => step.provider).filter(Boolean))];
   const windowRuns = windowItem && new Set(windowItem.subtasks.map(step => step.key));
   const fields = <>
     <span className="min-w-0 font-semibold">
@@ -91,10 +111,11 @@ function PackageItem({ item, windowItem }) {
         This window · {windowItem.subtasks.length}/{item.subtasks.length} runs · {number(windowItem.tokens)} tokens · {duration(windowItem)}
       </span>}
       {item.epic && <span className="mt-1.5 block"><EpicTag epic={item.epic}/></span>}
+      {providers.length > 0 && <span className="mt-1 block text-xs text-muted-foreground">{providers.map(providerName).join(' · ')}</span>}
     </span>
     <span className={fieldLayout + ' font-normal'}>
       <PackageField label="Story points">{number(item.points)}</PackageField>
-      <PackageField label="Tokens"><TokenCount item={item}/>
+      <PackageField label="Usage"><RunUsage item={item}/>
         <EfficiencyBadge score={item.tokenScore} labels={['Low usage', 'High usage']}/>
       </PackageField>
       <PackageField label="Work time">{duration(item)}
@@ -111,10 +132,11 @@ function PackageItem({ item, windowItem }) {
     <CollapsibleContent asChild><ul className="space-y-1.5 pt-1.5" aria-label="Subtasks">
       {item.subtasks.map((step) => <li key={step.key} className={rowLayout + ' bg-muted/40'}>
         <span className="min-w-0 ps-4 font-medium"><span className="text-muted-foreground">{stepTypes[step.kind]} · </span>{step.name}<WorkTime item={step}/>
+          <span className="mt-1 block text-xs text-muted-foreground">{providerName(step.provider)}{step.model && ` · ${step.model}`}</span>
           {windowRuns && <span className="mt-1 block text-xs font-normal text-muted-foreground">{windowRuns.has(step.key) ? 'This window' : 'Outside this window'}</span>}
         </span>
         <span className={fieldLayout}>
-          <PackageField label="Tokens" className="col-start-2 row-start-1"><TokenCount item={step}/></PackageField>
+          <PackageField label="Usage" className="col-start-2 row-start-1"><RunUsage item={step}/></PackageField>
           <PackageField label="Work time" className="col-start-1 row-start-2 sm:col-start-3 sm:row-start-1">{duration(step)}</PackageField>
         </span>
       </li>)}
@@ -411,8 +433,36 @@ function Dashboard() {
       <ContextOverview items={data.items}/>
       <QuotaCoverage coverage={data.coverage}/>
 
+      {data.quotaSnapshots.length > 0 && <Card>
+        <CardHeader><CardTitle>Account and pool usage</CardTitle></CardHeader>
+        <CardContent><ul className="space-y-2 text-sm">
+          {data.quotaSnapshots.map(quota => <li key={JSON.stringify([quota.provider, quota.id])}>
+            <strong>{providerName(quota.provider)} · {quota.account}</strong>
+            {' · '}{new Date(quota.periodStart).toLocaleDateString()} – {new Date(quota.periodEnd).toLocaleDateString()}
+            {' · '}{number(quota.used)}{quota.limit != null && ` / ${number(quota.limit)}`} {quota.unit}
+            {quota.overage != null && ` · ${number(quota.overage)} ${quota.unit} overage`}
+          </li>)}
+        </ul></CardContent>
+      </Card>}
+      {scope === 'all' && data.unassignedRuns.length > 0 && <Card>
+        <CardHeader><CardTitle>Unassigned runs</CardTitle></CardHeader>
+        <CardContent><ul className="space-y-2 text-sm">
+          {data.unassignedRuns.map(run => <li key={JSON.stringify([run.provider, run.id])}>
+            <strong>{providerName(run.provider)} · {run.name}</strong> <RunUsage item={run}/>
+            <code className="break-all text-xs text-muted-foreground">{run.provider}/{run.id}</code>
+          </li>)}
+        </ul></CardContent>
+      </Card>}
+
       <Card>
-        <CardHeader className="p-4 sm:p-6"><CardTitle>Tickets</CardTitle>
+        <CardHeader><CardTitle>Tickets</CardTitle></CardHeader>
+        <CardContent>{data.items.length > 0 ? <ul className="space-y-1.5">
+          {data.items.map(item => <PackageItem key={item.id} item={item}/>)}
+        </ul> : <p className="text-sm text-muted-foreground">{scope === 'all' ? 'No tickets recorded.' : 'No tickets match this filter.'}</p>}</CardContent>
+      </Card>
+
+      {data.quotaWindows.some(window => window.resetsAt !== null) && <Card>
+        <CardHeader className="p-4 sm:p-6"><CardTitle>Codex quota windows</CardTitle>
           <CardDescription>Each 5-hour window shows measured usage for the runs listed in it. Tickets that span windows are split by run.</CardDescription>
           <CardDescription>Rows show whole-ticket totals and scores. When a ticket spans multiple windows, its contribution to this window is listed separately. Scores compare tickets with the same story-point estimate.</CardDescription>
         </CardHeader>
@@ -440,10 +490,10 @@ function Dashboard() {
             </ul>
           </section>)}
         </div> : <p className="break-words text-sm text-muted-foreground">{scope === 'all'
-          ? <>Add a ticket to <code>.codex/context-packages.json</code> to see it here.</>
+          ? 'No tickets recorded.'
           : 'No tickets match this filter.'}</p>}
         </CardContent>
-      </Card>
+      </Card>}
     </>}
   </main>;
 }

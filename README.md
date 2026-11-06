@@ -1,27 +1,60 @@
 # AI Performance Tool
 
-Lokales Dashboard für Codex-Telemetrie. Es zeigt Tokenverbrauch, Arbeitsdauer, Nacharbeit und Effizienz pro Ticket und Epic. Mit der optionalen Codex-Historie zeigt es auch die Zuordnung zum 5-Stunden-Kontingent.
+[Documentation](https://toberpaul.github.io/ai-performance/docs/)
+
+Lokales Dashboard für KI-gestützte Arbeit. Tickets können Durchläufe mehrerer Tools enthalten. Arbeitszeit und Nacharbeit werden pro Ticket zusammengefasst. Verbrauch bleibt in der jeweiligen Einheit sichtbar.
 
 ## Start
 
-Benötigt Node.js ab Version 18 und npm. Führe die Befehle in diesem Repository aus.
+Benötigt Node.js ab Version 22.13 und npm. Führe die Befehle in diesem Repository aus.
 
 ```powershell
 npm ci
-npm start -- "C:\Users\Tobia\Documents\ChatGPT\Animation Library" --codex-history
+npm start
 ```
 
-Öffne die ausgegebene Adresse mit `127.0.0.1`. Du kannst den Pfad durch jedes Projekt mit passenden Telemetriedaten ersetzen. Ohne Pfad verwendet das Tool das aktuelle Verzeichnis. Ohne `--codex-history` liest es nur die Daten aus dem Zielprojekt. **Refresh** liest die Daten erneut.
+Öffne die ausgegebene Adresse mit `127.0.0.1`. Ohne Pfad wertet das Dashboard das aktuelle Verzeichnis aus. Übergib ein anderes Projekt mit `npm start -- "<Projektpfad>"`. **Refresh** liest die Daten erneut.
 
-## Dieses Projekt auswerten
+## Projektdaten und Migration
 
-Starte hier `npm start -- --codex-history`, um die übernommenen und die in diesem Projekt erfassten Tickets zu sehen. Die Hooks für Tokenmessung und Ticketprüfung sind unter `.codex/hooks.json` eingerichtet. Prüfe und bestätige sie einmalig in Codex unter **Settings → Hooks** oder in der CLI mit `/hooks`. Lege nach einem frischen Clone die lokale Ticketdatei mit `Copy-Item telemetry/.codex/context-packages.json .codex/context-packages.json` an. Ticketdatei und Rohlog bleiben lokal.
+Die lokale Datenbank `.codex/performance.sqlite` enthält Tickets, Durchläufe, Verbrauch und Kontingentbeobachtungen. Beim ersten Öffnen übernimmt das Tool vorhandene Daten aus `context-packages.json`, `context-usage.jsonl` und `context-history/`. Mit `npm run record -- migrate` lässt sich die Migration vorab auslösen. Die alten Dateien bleiben als Ausgangssicherung erhalten. Verwende für die weitere Erfassung die aktualisierten Hooks und den Datenbankbefehl.
 
-## Datenquellen
+Sichere `.codex/performance.sqlite`, wenn keine Erfassung läuft. Die Datenbank und ihre SQLite-Nebendateien bleiben lokal und gehören in die Git-Ignore-Liste.
 
-Das Dashboard liest `.codex/context-packages.json` und `.codex/context-usage.jsonl` aus dem Zielprojekt. Mit `--codex-history` zieht es zusätzlich passende Turns aus den lokalen Codex-Sitzungen heran. Die Daten bleiben lokal.
+## Hooks
 
-Bestehende Projekte mit Telemetrie lassen sich direkt auswerten. Für weitere Projekte liegen Vorlagen unter `telemetry/.codex/`. Kopiere die benötigten Hook-Skripte in das Zielprojekt, ergänze die Einträge in dessen `.codex/hooks.json` und prüfe und aktiviere sie dort in Codex über **Settings → Hooks** oder `/hooks`. Die Hooks benötigen Git und Node.js im PATH. Ignoriere `/.codex/context-usage.jsonl` in Git. Der Usage-Hook erfasst pro Modellversuch verfügbare Tokenzähler und Metadaten wie Modell, Session und Turn. Prompts und Antworten bleiben aus dem Log.
+- **Codex:** Kopiere die Skripte aus `telemetry/.codex/hooks/` und ergänze die Hook-Einträge in der bestehenden `.codex/hooks.json`. Prüfe und bestätige sie in Codex unter **Settings → Hooks** oder mit `/hooks`. Die Hooks benötigen Git und Node.js 22.13 oder neuer im PATH.
+- **Kiro:** Kopiere `telemetry/.kiro/hooks/` nach `.kiro/hooks/` sowie `telemetry/.codex/hooks/performance-store.cjs` nach `.codex/hooks/`. Der AgentStop-Hook erfasst lokale Durchläufe als Kiro. Ist `AI_PERFORMANCE_TICKET_ID` in der Kiro-Umgebung gesetzt, verwendet er diese Ticket-ID. Andernfalls erscheint der Durchlauf unter **Unassigned runs**. Credits und Dauer können aus einer geeigneten Quelle ergänzt werden.
+
+## Tickets und Messwerte schreiben
+
+Die Schreibbefehle `ticket`, `run` und `quota` akzeptieren eine JSON-Datei oder `-` für stdin. Übergib bei Bedarf nach der Datei den Pfad zum Zielprojekt.
+
+```powershell
+npm run record -- ticket ticket.json
+npm run record -- list ticket
+npm run record -- run run.json
+npm run record -- quota quota.json
+npm run record -- link "kiro/<run-id>" "<ticket-id>"
+```
+
+Ein Ticket hat mindestens `id`, `name` und `epic`. Dieselbe ID aktualisiert den Eintrag. Für Codex verknüpfen `sessionId` und `turnId` in `subtasks` die erfassten Modellaufrufe. Andere Integrationen können `ticketId` am Durchlauf angeben oder den Durchlauf später verknüpfen.
+
+Ein Kiro-Durchlauf mit einem gemessenen Verbrauch:
+
+```json
+{
+  "id": "review-123",
+  "provider": "kiro",
+  "ticketId": "P-001",
+  "name": "Review implementation",
+  "kind": "feedback",
+  "workSeconds": 90,
+  "metrics": [{ "unit": "credits", "value": 2.4 }]
+}
+```
+
+Eine Kontingentbeobachtung enthält `id`, `provider`, `account`, `periodStart`, `periodEnd`, `observedAt`, `unit` und `used`. `limit` und `overage` sind optional. Die UI zeigt den neuesten Stand je Anbieter, Konto, Einheit und Zeitraum. Kontostände werden separat vom Ticketverbrauch angezeigt.
 
 ## Auswertung
 
@@ -39,13 +72,15 @@ Das Dashboard bewertet Tokenverbrauch und Arbeitsdauer getrennt. Für jede Kennz
 
 Änderungen an React-Komponenten, CSS und der Datenaufbereitung laden den geöffneten Browser-Tab automatisch neu. Änderungen am Server-Einstiegspunkt `serve.mjs` erfordern einen Serverneustart.
 
-Mit der Codex-Historie gruppiert das Dashboard die Arbeitspakete nach dem Reset-Zeitpunkt des 5-Stunden-Kontingents. Ein Ticket mit Durchläufen in mehreren Fenstern erscheint anteilig in jedem Fenster. Die Summe berücksichtigt die gemessenen Durchläufe der angezeigten Tickets und folgt dem Epic-Filter. Durchläufe ohne zuordenbaren Reset bleiben separat sichtbar.
+Mit gespeicherten Kontingentmessungen gruppiert das Dashboard die Arbeitspakete nach dem Reset-Zeitpunkt des 5-Stunden-Kontingents. Ein Ticket mit Durchläufen in mehreren Fenstern erscheint anteilig in jedem Fenster. Die Summe berücksichtigt die gemessenen Durchläufe der angezeigten Tickets und folgt dem Epic-Filter. Durchläufe ohne zuordenbaren Reset bleiben separat sichtbar.
 
-Mit `--codex-history` am Ende des Startbefehls liest das Dashboard zusätzlich lokale Codex-Sitzungen zu den gespeicherten Teilaufgaben. Es übernimmt nur Verbrauchsdaten der zugeordneten Turns und zählt sie bei vorhandenen Hook-Daten einmal. Die 5‑Stunden-Anzeige verwendet verfügbare Kontostände aus demselben Limitfenster.
+## Vorhandene Messwerte sichern
 
-Kopiere `telemetry/.codex/context-packages.json` ins Projekt, um die Paketerfassung zu aktivieren. Codex legt einen Eintrag pro Paket an und erfasst jeden Durchlauf als Teilaufgabe. Session- und Turn-ID verbinden ihn mit den Token-Messwerten. Die aufgeklappte Paketzeile zeigt die einzelnen Durchläufe. Das Dashboard berechnet die Gesamtdauer, die Tokens und die Anzahl der Feedbackrunden daraus.
+Führe `npm run import-history` im Tool-Projekt aus. Für ein anderes Projekt nutze `npm run import-history -- "<Projektpfad>"`. Der Import durchsucht aktive und archivierte Codex-Sitzungen der eingetragenen Tickets und schreibt die Messdaten in das jeweilige Projekt. Wiederholte Importe zählen dieselben Messwerte einmal. `npm start -- --codex-history` führt den Import vor dem Start aus.
 
-Kopiere für die Abschlussprüfung zusätzlich `hooks/context-package-check.cjs` und übernimm die Einträge für `UserPromptSubmit`, `Stop` und `Interrupt` aus der Hook-Vorlage. Prüfe und vertraue ihnen einmalig in Codex. Der Hook vergleicht den Git-Arbeitsstand zu Beginn und Ende des Turns. Bei erkannten Projektänderungen prüft er Schätzung und eindeutige Zuordnung und fordert bei einem fehlenden oder ungültigen Eintrag einmal zum Nachtragen auf. Die Prüfung arbeitet lokal. Parallele Änderungen im selben Checkout können ebenfalls einen Hinweis auslösen.
+Fehlende Messwerte aus bereits gelöschten Sitzungen lassen sich mit einem Backup des ursprünglichen Verlaufs oder Logs nachtragen.
+
+Beispiel für ein Ticket mit einem zugeordneten Codex-Durchlauf:
 
 ```json
 {

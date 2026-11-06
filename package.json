@@ -3,7 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node serve.mjs"
+    "start": "node serve.mjs",
+    "import-history": "node import-history.mjs",
+    "record": "node record.mjs",
+    "test": "node --test history.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-collapsible": "1.2.1",
@@ -20,7 +23,7 @@
     "tailwindcss": "3.4.17"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.13.0"
   },
   "license": "MIT"
 }

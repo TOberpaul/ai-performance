@@ -2,21 +2,21 @@ import { context } from 'esbuild';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import postcss from 'postcss';
 import tailwind from 'tailwindcss';
+import { importHistory } from './import-history.mjs';
 
 const app = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const project = resolve(args.find((arg) => arg !== '--codex-history') ?? process.env.INIT_CWD ?? process.cwd());
-const history = args.includes('--codex-history')
-  ? join(process.env.CODEX_HOME || join(homedir(), '.codex'), 'sessions') : undefined;
+if (args.includes('--codex-history')) await importHistory(project);
 let assets, assetRevision, dataRevision, readAnalytics;
 const revision = () => JSON.stringify([assetRevision, dataRevision]);
 const dataBuild = await context({
   entryPoints: [join(app, 'data.mjs')], bundle: true, write: false,
   platform: 'node', format: 'esm',
+  banner: { js: `import { createRequire } from 'node:module'; const require = createRequire(${JSON.stringify(import.meta.url)});` },
   plugins: [{
     name: 'analytics-data-live-reload',
     setup(builder) {
@@ -105,7 +105,7 @@ const server = createServer(async (request, response) => {
     response.setHeader('Content-Type', 'application/json; charset=utf-8');
     try {
       const url = new URL(request.url, 'http://127.0.0.1');
-      response.end(JSON.stringify(await readAnalytics(project, url.searchParams.get('epic'), history)));
+      response.end(JSON.stringify(await readAnalytics(project, url.searchParams.get('epic'))));
     } catch (error) {
       response.statusCode = 500;
       response.end(JSON.stringify({ error: error.message }));

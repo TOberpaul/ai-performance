@@ -1,4 +1,5 @@
-const { appendFileSync } = require('node:fs');
+const { randomUUID } = require('node:crypto');
+const { withStore, put } = require('./performance-store.cjs');
 const { join } = require('node:path');
 
 process.stdin.setEncoding('utf8');
@@ -9,6 +10,7 @@ process.stdin.on('end', () => {
   if (event.hook_event_name !== 'PostModelRequest') return;
 
   const record = {
+    provider: 'codex',
     timestamp: new Date().toISOString(),
     sessionId: event.session_id ?? null,
     turnId: event.turn_id ?? null,
@@ -18,5 +20,5 @@ process.stdin.on('end', () => {
     tokenUsage: event.token_usage ?? null,
   };
 
-  appendFileSync(join(__dirname, '..', 'context-usage.jsonl'), JSON.stringify(record) + '\n');
+  withStore(join(__dirname, '..', '..'), db => put(db, 'attempt', randomUUID(), record));
 });

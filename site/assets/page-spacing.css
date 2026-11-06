@@ -1,0 +1,11 @@
+:root{--page-gutter:24px;--page-entry:40px;--page-section-gap:48px;--page-heading-gap:16px;--site-content-width:1024px;--site-workspace-width:90vw}
+@media(max-width:767.98px){:root{--page-gutter:16px;--page-entry:24px;--page-section-gap:32px;--site-workspace-width:100vw}}
+
+/* One page-header recipe, independent of the component provider. */
+.page-header{display:flex;flex-direction:column;align-items:flex-start;gap:var(--page-heading-gap);min-width:0;color:inherit}
+.page-header .page-header-eyebrow{margin:0;font:12px/1.5 ui-monospace,monospace;letter-spacing:.1em;color:var(--gallery-muted,hsl(var(--muted-foreground)))}
+.page-header h1{margin:0;font:650 36px/1.2 ui-sans-serif,system-ui,sans-serif;letter-spacing:normal;color:inherit}
+.page-header .page-header-description{margin:0;font:400 15px/1.75 ui-sans-serif,system-ui,sans-serif;color:var(--gallery-muted,hsl(var(--muted-foreground)))}
+@media(max-width:767.98px){.page-header h1{font-size:30px}}
+:root{--page-gutter:32px}
+@media(max-width:767.98px){:root{--page-gutter:16px}}

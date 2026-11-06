@@ -1,4 +1,5 @@
 const fs = require('node:fs');
+const { withStore, records } = require('./performance-store.cjs');
 const { execFileSync } = require('node:child_process');
 const { createHash } = require('node:crypto');
 const { tmpdir } = require('node:os');
@@ -6,10 +7,9 @@ const { join } = require('node:path');
 
 const points = new Set([1, 2, 3, 5, 8, 13, 20]);
 const root = join(__dirname, '..', '..');
-const packages = join(root, '.codex', 'context-packages.json');
 
 function fingerprint() {
-  const status = execFileSync('git', ['status', '--porcelain=v2', '--branch', '-z', '--no-renames', '--untracked-files=all', '--', '.', ':(exclude).codex/context-packages.json', ':(exclude).codex/context-usage.jsonl'], {
+  const status = execFileSync('git', ['status', '--porcelain=v2', '--branch', '-z', '--no-renames', '--untracked-files=all', '--', '.', ':(exclude).codex/context-packages.json', ':(exclude).codex/context-usage.jsonl', ':(exclude).codex/performance.sqlite*'], {
     cwd: root, encoding: 'utf8', timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'],
   });
   const hash = createHash('sha256').update(status);
@@ -23,7 +23,7 @@ function fingerprint() {
 }
 
 function check(event) {
-  if (!fs.existsSync(packages) || !event.session_id || !event.turn_id || event.permission_mode === 'plan') return;
+  if (!event.session_id || !event.turn_id || event.permission_mode === 'plan') return;
   const key = createHash('sha256').update(JSON.stringify([root, event.session_id, event.turn_id])).digest('hex');
   const baseline = join(tmpdir(), 'codex-context-package-' + key);
   if (event.hook_event_name === 'UserPromptSubmit') {
@@ -36,7 +36,7 @@ function check(event) {
   fs.rmSync(baseline, { force: true });
   if (event.hook_event_name !== 'Stop' || event.stop_hook_active || before === fingerprint()) return;
 
-  const items = JSON.parse(fs.readFileSync(packages, 'utf8').replace(/^\uFEFF/, ''));
+  const items = withStore(root, db => records(db, 'ticket'));
   const matches = items.flatMap(item => (item.subtasks ?? [])
     .filter(step => step.sessionId === event.session_id && step.turnId === event.turn_id)
     .map(step => ({ item, step })));
@@ -48,7 +48,7 @@ function check(event) {
     Number.isSafeInteger(step.workSeconds) && step.workSeconds >= 0);
   if (!valid) console.log(JSON.stringify({
     decision: 'block',
-    reason: `Project change without a valid ticket record. Record this run exactly once in .codex/context-packages.json (sessionId: ${event.session_id}, turnId: ${event.turn_id}). Attach feedback to the existing ticket. Every ticket needs an epic. For new work, record the title, estimate and start time. If the file is locked, report the blocker.`,
+    reason: `Project change without a valid ticket record. Record this run exactly once in the local performance database using npm run record (sessionId: ${event.session_id}, turnId: ${event.turn_id}). Attach feedback to the existing ticket. Every ticket needs an epic. For new work, record the title, estimate and start time. If the file is locked, report the blocker.`,
   }));
 }
 
