@@ -1,0 +1,4 @@
+/* The AIP intro uses the full MDK workspace width because it has no demo column. */
+.home-page > .home-intro {
+  grid-column: 1 / -1;
+}

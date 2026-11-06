@@ -1,7 +1,7 @@
 import {createSlideTransition,bindScrollMotion} from '@tobiasoberpaul/mdk';
 import {Moon,Sun} from 'lucide-react';
 import {Documentation} from './documentation.jsx';
-import {Button} from './ui/button';
+import {Button,buttonVariants} from './ui/button';
 import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {Tooltip,TooltipTrigger,TooltipContent,TooltipProvider} from './ui/tooltip';
@@ -11,6 +11,9 @@ const sourceUrl = 'https://github.com/Tobias-Oberpaul/aip';
 const container = document.getElementById('root');
 const fallback = container.querySelector('article').cloneNode(true);
 fallback.querySelector('[data-static-toc]')?.remove();
+for(const link of fallback.querySelectorAll('.home-actions [data-button]')){
+  link.className=buttonVariants({variant:link.dataset.button,size:link.dataset.size});
+}
 const html = fallback.innerHTML;
 const sections = [...fallback.querySelectorAll('section[id]')].map(section => ({
   id: section.id, title: section.querySelector('h2').textContent,
