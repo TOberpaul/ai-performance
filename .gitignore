@@ -1,0 +1,3 @@
+/node_modules/
+/.codex/context-usage.jsonl
+/.codex/context-packages.json

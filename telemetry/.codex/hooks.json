@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/context-package-check.cjs\"", "timeout": 5 }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/context-package-check.cjs\"", "timeout": 5 }] }
+    ],
+    "Interrupt": [
+      { "hooks": [{ "type": "command", "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/context-package-check.cjs\"", "timeout": 3 }] }
+    ],
+    "PostModelRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/context-usage.cjs\"",
+            "async": true,
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
