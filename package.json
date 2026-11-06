@@ -34,9 +34,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/TOberpaul/ai-performance.git"
+    "url": "git+https://github.com/Tobias-Oberpaul/aip.git"
   },
-  "homepage": "https://toberpaul.github.io/ai-performance/",
+  "homepage": "https://tobias-oberpaul.github.io/aip/",
   "publishConfig": {
     "access": "public"
   },

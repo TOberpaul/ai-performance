@@ -19,7 +19,7 @@
         <nav aria-label="AI Performance Tool pages" class="flex flex-wrap gap-x-4 gap-y-2 text-sm">
           <a href="../" aria-label="AI Performance Tool"><span class="shell-home-full">AI Performance Tool</span><span class="shell-home-short">AI Performance</span></a>
           <a href="./" aria-current="page">Documentation</a>
-          <a href="https://github.com/TOberpaul/ai-performance">GitHub</a>
+          <a href="https://github.com/Tobias-Oberpaul/aip">GitHub</a>
         </nav>
       </header>
       <article class="space-y-4">
@@ -38,8 +38,8 @@
           <pre><code>npm install -D @tobiasoberpaul/ai-performance
 npm exec -- ai-performance serve</code></pre>
           <p>Open the printed loopback URL. For regular package updates, run <code>npm update @tobiasoberpaul/ai-performance</code>. To run directly from source instead, use the tool repository:</p>
-          <pre><code>git clone https://github.com/TOberpaul/ai-performance.git
-cd ai-performance
+          <pre><code>git clone https://github.com/Tobias-Oberpaul/aip.git
+cd aip
 npm ci
 npm start -- "&lt;path-to-your-project-clone&gt;"</code></pre>
         </section>
@@ -68,7 +68,7 @@ npm exec -- ai-performance init --kiro
           <p>Give each ticket a stable ID, a name and an epic. A ticket can contain runs from several tools. Codex links a recorded attempt via the session ID and turn ID in the ticket's <code>subtasks</code>. For Kiro, use a ticket ID during capture or copy the key shown under <strong>Unassigned runs</strong> and link it later.</p>
           <pre><code>npm run record -- ticket ticket.json "&lt;path-to-your-project-clone&gt;"</code></pre>
           <p>The ticket view adds up recorded work time and shows tokens and credits in their original units. An unknown measurement appears as missing. Codex quota windows and Kiro account or pool observations describe usage at different scopes, so the dashboard shows them separately.</p>
-          <p>See the <a href="https://github.com/TOberpaul/ai-performance#tickets-und-messwerte-schreiben">record command reference</a> for JSON examples.</p>
+          <p>See the <a href="https://github.com/Tobias-Oberpaul/aip#tickets-und-messwerte-schreiben">record command reference</a> for JSON examples.</p>
         </section>
         <section id="privacy">
           <h2>What stays in your clone</h2>

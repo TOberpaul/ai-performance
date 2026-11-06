@@ -14,7 +14,7 @@ import {Tooltip,TooltipTrigger,TooltipContent,TooltipProvider} from './ui/toolti
 
 const productName = 'AI Performance Tool';
 const productShortName = 'AI Performance';
-const sourceUrl = 'https://github.com/TOberpaul/ai-performance';
+const sourceUrl = 'https://github.com/Tobias-Oberpaul/aip';
 const container = document.getElementById('root');
 const fallback = container.querySelector('article').cloneNode(true);
 fallback.querySelector('[data-static-toc]')?.remove();

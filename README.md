@@ -1,6 +1,6 @@
 # AI Performance Tool
 
-[Documentation](https://toberpaul.github.io/ai-performance/docs/)
+[Documentation](https://tobias-oberpaul.github.io/aip/docs/)
 
 Lokales Dashboard für KI-gestützte Arbeit. Tickets können Durchläufe mehrerer Tools enthalten. Arbeitszeit und Nacharbeit werden pro Ticket zusammengefasst. Verbrauch bleibt in der jeweiligen Einheit sichtbar.
 
